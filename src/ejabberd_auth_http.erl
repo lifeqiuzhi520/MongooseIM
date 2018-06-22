@@ -43,17 +43,22 @@
 
 -spec start(binary()) -> ok.
 start(Host) ->
+    wpool:start(),
     AuthHost = ejabberd_auth:get_opt(Host, host),
     PoolSize = ejabberd_auth:get_opt(Host, connection_pool_size, 10),
     Opts = ejabberd_auth:get_opt(Host, connection_opts, []),
-    ChildMods = [fusco],
-    ChildMF = {fusco, start_link},
-    ChildArgs = {for_all, [AuthHost, Opts]},
-    ChildSpec = {{ejabberd_auth_http_sup, Host},
-                  {cuesport, start_link,
-                   [pool_name(Host), PoolSize, ChildMods, ChildMF, ChildArgs]},
-                  transient, 2000, supervisor, [cuesport | ChildMods]},
-    ejabberd_sup:start_child(ChildSpec),
+    PoolOpts = ejabberd_auth:get_opt(Host, wpool_opts, []),
+    WorkerArgs = [AuthHost, Opts],
+    wpool:start_pool(pool_name(Host),
+                     [{workers, PoolSize}, {worker, {fusco, WorkerArgs}} | PoolOpts]),
+%%    ChildMods = [fusco],
+%%    ChildMF = {fusco, start_link},
+%%    ChildArgs = {for_all, [AuthHost, Opts]},
+%%    ChildSpec = {{ejabberd_auth_http_sup, Host},
+%%                  {cuesport, start_link,
+%%                   [pool_name(Host), PoolSize, ChildMods, ChildMF, ChildArgs]},
+%%                  transient, 2000, supervisor, [cuesport | ChildMods]},
+%%    ejabberd_sup:start_child(ChildSpec),
     ok.
 
 
